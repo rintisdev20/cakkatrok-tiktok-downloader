@@ -258,7 +258,7 @@ POST https://savetik.io/api/ajaxSearch
 Dibuat oleh RintisW.P.
 
 - Telegram: <https://t.me/rintisdep>
-- Bug dan permintaan fitur: <https://github.com/RintisWP/cakkatrok-tiktok-downloader/issues>
+- Bug dan permintaan fitur: <https://github.com/rintisdev20/cakkatrok-tiktok-downloader/issues>
 
 ## Disclaimer
 
