@@ -26,12 +26,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RintisWP/cakkatrok-tiktok-downloader.git"
+    "url": "git+https://github.com/rintisdev20/cakkatrok-tiktok-downloader.git"
   },
   "bugs": {
-    "url": "https://github.com/RintisWP/cakkatrok-tiktok-downloader/issues"
+    "url": "https://github.com/rintisdev20/cakkatrok-tiktok-downloader/issues"
   },
-  "homepage": "https://github.com/RintisWP/cakkatrok-tiktok-downloader#readme",
+  "homepage": "https://github.com/rintisdev20/cakkatrok-tiktok-downloader#readme",
   "files": [
     "bin/",
     "src/",
