@@ -1,153 +1,178 @@
 # Cakkatrok TikTok Downloader
 
-Downloader TikTok berbasis Node.js yang memakai endpoint web SaveTik untuk mengambil link media dan mengunduh file ke lokal.
+Downloader TikTok untuk Node.js yang mengambil video, slideshow foto, dan audio melalui endpoint web SaveTik. Paket ini dapat dipakai sebagai module CommonJS maupun melalui CLI.
 
-Module ini bisa mendeteksi isi link TikTok:
+> Proyek ini bukan API resmi TikTok atau SaveTik. Endpoint dan struktur halaman SaveTik dapat berubah sewaktu-waktu.
 
-- Jika berisi video, hasilnya mengembalikan link video.
-- Jika berisi foto/slideshow, hasilnya mengembalikan semua link foto.
-- Bisa mengambil audio/MP3 melalui `getData()`.
-- Bisa download video, audio, dan foto ke folder lokal.
-- Cocok dipakai untuk bot WhatsApp, Telegram, atau script pribadi.
+## Fitur
 
-> Catatan: ini bukan API resmi TikTok dan bukan API resmi SaveTik. Endpoint web SaveTik bisa berubah sewaktu-waktu.
+- Mendeteksi konten `video`, `photo`, atau `audio`.
+- Menyediakan kualitas video `no_watermark`, `watermark`, `hd`, dan `standard` jika tersedia.
+- Mengunduh video, audio, foto, atau seluruh media sekaligus.
+- Memvalidasi link dengan `new URL()` dan hostname resmi TikTok.
+- Menentukan ekstensi file dari header HTTP `Content-Type`.
+- Menulis unduhan ke file `.part` dan mengganti nama setelah selesai.
+- Menghapus file `.part` secara otomatis jika unduhan gagal.
+- Mendukung Node.js 18 atau lebih baru.
 
-## Credit
+## Instalasi
 
-Created by RintisW.P
+Dari npm:
 
-- Telegram: https://t.me/rintisdep
-- Report masalah, bug, atau request perbaikan: https://t.me/rintisdep
+```bash
+npm install cakkatrok-tiktok-downloader
+```
 
-## Install
+Untuk pengembangan dari source repository:
 
 ```bash
 npm install
+npm test
 ```
 
-Minimal Node.js:
+Jika PowerShell memblokir `npm.ps1`, gunakan:
 
-```txt
-Node.js >= 18
-```
-
-## Cara Cepat
-
-Gunakan CLI untuk memeriksa link atau mengunduh media. `npm test` khusus menjalankan unit test dan tidak membutuhkan link TikTok.
-
-```bash
-npx savetik-dl "LINK_TIKTOK"
-npx savetik-dl "LINK_TIKTOK" --download --type all --out downloads
-```
-
-## Output Deteksi Media
-
-Jika link TikTok berisi video:
-
-```json
-{
-  "title": "...",
-  "author": "...",
-  "type": "video",
-  "video": "https://...",
-  "photos": [],
-  "links": ["https://..."]
-}
-```
-
-Jika link TikTok berisi foto/slideshow:
-
-```json
-{
-  "title": "...",
-  "author": "...",
-  "type": "photo",
-  "video": null,
-  "photos": [
-    "https://foto-1...",
-    "https://foto-2..."
-  ],
-  "links": [
-    "https://foto-1...",
-    "https://foto-2..."
-  ]
-}
+```powershell
+npm.cmd install
+npm.cmd test
 ```
 
 ## CLI
 
-Ambil data media:
+Setelah paket terpasang, tampilkan data media dengan:
+
+```bash
+npx savetik-dl "https://www.tiktok.com/@username/video/123456789"
+```
+
+Saat bekerja langsung dari source repository, perintah yang setara adalah:
 
 ```bash
 node bin/savetik-cli.js "LINK_TIKTOK"
 ```
 
-Download semua media:
+Download seluruh media:
 
 ```bash
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type all --out downloads
+npx savetik-dl "LINK_TIKTOK" --download --type all --out downloads
 ```
 
-Download video saja:
+Download video tanpa watermark:
 
 ```bash
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type video --out downloads
+npx savetik-dl "LINK_TIKTOK" --download --type video --quality no_watermark --out downloads
 ```
 
-Pilih kualitas video:
+Download audio atau semua foto:
 
 ```bash
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type video --quality no_watermark
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type video --quality hd
+npx savetik-dl "LINK_TIKTOK" --download --type mp3 --out downloads
+npx savetik-dl "LINK_TIKTOK" --download --type photos --out downloads
 ```
 
-Download MP3 saja:
+### Opsi CLI
 
-```bash
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type mp3 --out downloads
-```
+| Opsi | Keterangan | Default |
+| --- | --- | --- |
+| `--download` | Mengunduh media ke penyimpanan lokal | Tidak aktif |
+| `--type <type>` | Memilih jenis media yang diunduh | `all` |
+| `--quality <quality>` | Memilih kualitas video | Kualitas terbaik yang terdeteksi |
+| `--out <folder>` | Menentukan folder output | `downloads` |
+| `--lang <kode>` | Menentukan bahasa request SaveTik | `en` |
+| `-h`, `--help` | Menampilkan bantuan CLI | — |
 
-Download foto saja:
+Nilai `type` yang diterima:
 
-```bash
-node bin/savetik-cli.js "LINK_TIKTOK" --download --type photos --out downloads
-```
+- `all`
+- `video` atau `mp4`
+- `audio` atau `mp3`
+- `photo`, `photos`, atau `image`
 
-## Pemakaian Sebagai Module
+Nilai `quality` yang diterima:
 
-Gunakan `getMedia()` jika hanya butuh deteksi video/foto dan link media yang sesuai.
+- `no_watermark`
+- `watermark`
+- `hd`
+- `standard`
+
+Nilai lain akan ditolak dengan pesan kesalahan. Pilihan kualitas hanya berlaku untuk video dan bergantung pada link yang disediakan SaveTik.
+
+## Penggunaan sebagai Module
+
+### Mendeteksi jenis media
+
+Gunakan `getMedia()` untuk memperoleh hasil yang telah difilter berdasarkan jenis konten.
 
 ```js
 const { getMedia } = require('cakkatrok-tiktok-downloader');
 
 async function main() {
-  const data = await getMedia('LINK_TIKTOK');
+  const media = await getMedia('LINK_TIKTOK', { lang: 'en' });
 
-  if (data.type === 'video') {
-    console.log('Video:', data.video);
-    return;
-  }
-
-  if (data.type === 'photo') {
-    console.log('Foto:', data.photos);
-    return;
-  }
-
-  console.log('Media tidak ditemukan.');
+  if (media.type === 'video') console.log(media.video);
+  if (media.type === 'photo') console.log(media.photos);
+  if (media.type === 'audio') console.log(media.audio);
 }
 
 main().catch(console.error);
 ```
 
-Gunakan `downloadTikTok()` untuk download file ke folder lokal.
+Contoh hasil video:
+
+```js
+{
+  status: true,
+  source: 'savetik',
+  input: 'https://vt.tiktok.com/example',
+  title: 'Judul konten',
+  author: '@username',
+  thumbnail: 'https://...',
+  type: 'video',
+  video: 'https://...',
+  audio: null,
+  photos: [],
+  links: ['https://...']
+}
+```
+
+### Mengambil seluruh data media
+
+`getData()` mengembalikan semua video beserta kualitasnya, audio, foto, dan link yang ditemukan.
+
+```js
+const { getData } = require('cakkatrok-tiktok-downloader');
+
+const data = await getData('LINK_TIKTOK');
+
+console.log(data.videos);
+console.log(data.audios);
+console.log(data.photos);
+console.log(data.links);
+```
+
+Item video memiliki bentuk berikut:
+
+```js
+{
+  type: 'video',
+  quality: 'no_watermark',
+  label: 'Download without watermark',
+  url: 'https://...'
+}
+```
+
+### Mengunduh media
 
 ```js
 const { downloadTikTok } = require('cakkatrok-tiktok-downloader');
 
 async function main() {
   const result = await downloadTikTok('LINK_TIKTOK', {
-    type: 'all',
-    outputDir: './downloads'
+    type: 'video',
+    quality: 'hd',
+    outputDir: './downloads',
+    fileName: 'video-saya',
+    lang: 'en'
   });
 
   console.log(result.files);
@@ -156,133 +181,89 @@ async function main() {
 main().catch(console.error);
 ```
 
-## API
-
-### getMedia(url, options)
-
-Mengembalikan hasil yang sudah difilter sesuai jenis konten TikTok.
-
-```js
-const { getMedia } = require('cakkatrok-tiktok-downloader');
-
-const data = await getMedia('LINK_TIKTOK', {
-  lang: 'en'
-});
-```
-
-Field penting:
+Hasil `files`:
 
 ```js
 {
-  status: true,
-  source: 'savetik',
-  input: 'https://vt.tiktok.com/xxxx',
-  title: '...',
-  author: '...',
-  thumbnail: 'https://...',
-  type: 'video', // video | photo | unknown
-  video: 'https://...',
-  photos: [],
-  links: []
+  video: 'downloads/video-saya.mp4',
+  audio: null,
+  photos: []
 }
 ```
 
-### getData(url, options)
+Ekstensi akhir dapat berbeda dari nama awal apabila header `Content-Type` menunjukkan format lain.
 
-Mengembalikan data lengkap dari parser, termasuk video, audio, foto, dan semua link yang ditemukan.
+## API Ringkas
 
-```js
-const { getData } = require('cakkatrok-tiktok-downloader');
+| Fungsi | Keterangan |
+| --- | --- |
+| `getMedia(url, options)` | Mendeteksi jenis konten dan mengembalikan media utamanya |
+| `getData(url, options)` | Mengembalikan seluruh hasil parser SaveTik |
+| `downloadTikTok(url, options)` | Mengambil data dan mengunduh media yang dipilih |
+| `downloadFile(url, outputPath, options)` | Mengunduh satu file secara aman melalui file `.part` |
+| `parseSavetikHtml(html)` | Mengurai HTML hasil SaveTik tanpa request jaringan |
+| `validateTikTokUrl(url)` | Memvalidasi URL dan hostname TikTok |
+| `validateDownloadType(type)` | Memvalidasi pilihan jenis unduhan |
 
-const data = await getData('LINK_TIKTOK');
-
-console.log(data.video);
-console.log(data.audio);
-console.log(data.photos);
-console.log(data.links);
-```
-
-### downloadTikTok(url, options)
-
-Download media ke folder lokal.
-
-```js
-const { downloadTikTok } = require('cakkatrok-tiktok-downloader');
-
-const result = await downloadTikTok('LINK_TIKTOK', {
-  type: 'all',
-  outputDir: './downloads',
-  lang: 'en'
-});
-```
-
-Pilihan `type`:
-
-- `all`
-- `video`
-- `mp4`
-- `audio`
-- `mp3`
-- `photo`
-- `photos`
-- `image`
-
-Nilai selain daftar tersebut akan ditolak. Pilihan `quality` untuk video:
-
-- `no_watermark`
-- `watermark`
-- `hd`
-- `standard`
-
-Link masukan divalidasi memakai `new URL()` dan hanya menerima hostname resmi TikTok: `tiktok.com`, `www.tiktok.com`, `m.tiktok.com`, `vm.tiktok.com`, dan `vt.tiktok.com`.
-
-Ekstensi hasil unduhan ditentukan dari header HTTP `Content-Type`, bukan hanya dari URL. File ditulis dahulu sebagai `.part`, kemudian diubah ke nama akhir setelah selesai; file sementara otomatis dihapus jika unduhan gagal.
+Hostname TikTok yang diterima adalah `tiktok.com`, `www.tiktok.com`, `m.tiktok.com`, `vm.tiktok.com`, dan `vt.tiktok.com` dengan protokol HTTP atau HTTPS.
 
 ## Unit Test
+
+Unit test memakai runner bawaan `node:test` dan tidak melakukan request ke TikTok atau SaveTik.
 
 ```bash
 npm test
 ```
 
-## Contoh Bot Baileys
+Pengujian link TikTok sungguhan dilakukan melalui CLI, bukan melalui `test.js`:
 
-Lihat file:
-
-```txt
-examples/baileys-example.js
+```bash
+node bin/savetik-cli.js "LINK_TIKTOK"
 ```
 
-## Endpoint Yang Dipakai
+## Contoh
 
-```txt
-POST https://savetik.io/api/ajaxSearch
-```
-
-Body:
-
-```txt
-q=LINK_TIKTOK
-cursor=0
-page=0
-lang=en
-```
+- `examples/basic.js` — deteksi media dasar.
+- `examples/download-all.js` — mengunduh semua media.
+- `examples/baileys-example.js` — contoh integrasi dengan bot Baileys.
 
 ## Troubleshooting
 
-Jika media tidak muncul atau link download kosong, kemungkinan penyebabnya:
+### Media tidak ditemukan
 
-1. Link TikTok private, invalid, atau region-blocked.
-2. SaveTik sedang rate-limit atau meminta verifikasi anti-bot.
-3. Struktur HTML SaveTik berubah.
-4. Link CDN TikTok sudah expired.
-5. Konten TikTok sudah dihapus atau tidak publik.
+Pastikan link berasal dari hostname TikTok yang didukung dan kontennya publik. Konten private, dihapus, atau dibatasi wilayah mungkin tidak dapat diproses.
 
-Untuk report masalah, kirim detail error dan link contoh ke:
+### SaveTik meminta verifikasi
 
-```txt
-https://t.me/rintisdep
+Rate limit, CAPTCHA, Cloudflare, atau perubahan endpoint dapat menyebabkan request gagal. Coba lagi nanti dan periksa apakah struktur SaveTik telah berubah.
+
+### File tidak dapat diunduh
+
+Link CDN TikTok dapat kedaluwarsa. Ambil data baru dengan `getData()` atau jalankan kembali perintah download.
+
+### `type` atau `quality` ditolak
+
+Gunakan salah satu nilai resmi yang tercantum pada bagian opsi CLI. Penulisan tidak membedakan huruf besar dan kecil.
+
+## Endpoint
+
+Paket ini menggunakan:
+
+```text
+POST https://savetik.io/api/ajaxSearch
 ```
+
+## Credit
+
+Dibuat oleh RintisW.P.
+
+- Telegram: <https://t.me/rintisdep>
+- Bug dan permintaan fitur: <https://github.com/RintisWP/cakkatrok-tiktok-downloader/issues>
 
 ## Disclaimer
 
-Gunakan module ini dengan bijak. Pastikan penggunaan media mengikuti aturan TikTok, hak cipta, dan izin pemilik konten.
+Gunakan paket ini secara bertanggung jawab. Pastikan penggunaan dan distribusi media mematuhi aturan TikTok, hak cipta, serta izin pemilik konten.
+
+## License
+
+MIT
